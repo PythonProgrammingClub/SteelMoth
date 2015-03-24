@@ -33,6 +33,7 @@ class SingleIidTests(SingleIidFixture, unittest.TestCase):
         self.assertEqual(len(self.udm.iid), 2)
         self.assertEqual(self.udm.iid[self.test_iid],
                          {'widget': None,
+                          'configuration': {},
                           'children': [],
                           'grid': {}})
         self.assertEqual(self.udm.iid[''],
