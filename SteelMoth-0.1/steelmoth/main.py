@@ -25,6 +25,7 @@ class UserDataManager(ObservedSubject, object):
     def __init__(self):
         self.iid = {'': {'widget': None,
                          'children': [],
+                         'configure': {},
                          'grid': {}}}
         super().__init__()
     
@@ -36,13 +37,12 @@ class UserDataManager(ObservedSubject, object):
         else:
             self.iid[parent]['children'][index] = iid
         if widget and type(widget) is not Toplevel:
-            c = widget.configuration()
-            print("widget configuration: {}".format(c))
+            c = widget.configure()
         else:
             c = {}
         self.iid[iid] = {'widget': widget,
                          'children': [],
-                         'configuration': c,
+                         'configure': c,
                          'grid': {}}
     
     def delete(self, iid):
@@ -160,7 +160,7 @@ class WidgetTreeviewManager(ObservedSubject, object):
         
         self.udm = user_data_manager
         self.w = ttk.Treeview(master)
-        self.w.heading('#0', text="Widget Hierarchy")
+        self.w.heading('#0', text="Widget")
         self.w.grid(**kw)
         self.w['selectmode'] = 'browse'
         self.menu()
@@ -378,15 +378,13 @@ class WidgetConfigurationEntryManager(object):
     
     def update(self):
         self.iid = self.stm.w.selection()[0]
-        print("StringVar: {}".format(self.sv))
         x = self.iid
         try:
             y = self.stm.set_value(x)
-            print("set_value result: {} = {}".format(self.sv, y))
             self.sv.set(y)
         except TclError:
-            print("TclError: Exception caught and ignored.")
-#        self.sv.set(self.stm.set_value(self.iid))
+            pass
+        self.sv.set(self.stm.set_value(self.iid))
 
 
 class WidgetLayoutManager(object):
@@ -421,12 +419,11 @@ class WidgetLayoutManager(object):
                     self.result = option, value
             
             d = InsertOptionDialog(self.w)
-            print(self.ss.selection)
             self.udm.iid[self.ss.selection]['grid'][d.result[0]] = d.result[1]
-            print(self.udm.iid[self.ss.selection])
         
         def delete_option_command():
-            print("TODO: Delete a layout option")
+            # TODO: Delete a layout option
+            pass
         
         w = Menu(self.w)
         w.add_command(label="Insert", command=insert_option_command)
@@ -455,7 +452,7 @@ def main():
     wcf = ttk.Frame(n)
     wcf.grid(column=0, row=0, sticky=N+W+E+S)
     wcf.rowconfigure(0, weight=1)
-    n.add(wcf, text="Widget")
+    n.add(wcf, text="configure()")
     wctm = WidgetConfigurationTreeviewManager(udm, wtm, wcf, column=0, row=0, sticky=N+W+E+S, columnspan=2)
     wcem = WidgetConfigurationEntryManager(udm, wcf, column=1, row=1, sticky=N+W+E+S)
     

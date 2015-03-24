@@ -12,6 +12,7 @@ class BaseTests(BaseFixture, unittest.TestCase):
     def testInitValuesOk(self):
         self.assertEqual(self.udm.iid,
                          {'': {'widget': None,
+                               'configure': {},
                                'children': [],
                                'grid': {}}})
     def testInsertExistingIidRaisesKeyError(self):
@@ -33,11 +34,12 @@ class SingleIidTests(SingleIidFixture, unittest.TestCase):
         self.assertEqual(len(self.udm.iid), 2)
         self.assertEqual(self.udm.iid[self.test_iid],
                          {'widget': None,
-                          'configuration': {},
+                          'configure': {},
                           'children': [],
                           'grid': {}})
         self.assertEqual(self.udm.iid[''],
                          {'widget': None,
+                          'configure': {},
                           'children': [self.test_iid],
                           'grid': {}})
 
