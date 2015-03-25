@@ -36,20 +36,18 @@ class UserDataManager(ObservedSubject, object):
             self.iid[parent]['children'].append(iid)
         else:
             self.iid[parent]['children'][index] = iid
-        if widget and type(widget) is not Toplevel:
-            c = widget.configure()
-        else:
-            c = {}
         self.iid[iid] = {'widget': widget,
                          'children': [],
-                         'configure': c,
+                         'configure': widget and widget.configure() or {},
                          'grid': {}}
     
     def delete(self, iid):
+        
         def recursive_delete(iid):
             for i in self.iid[iid]['children']:
                 recursive_delete(i)
             del self.iid[iid]
+        
         if iid not in self.iid:
             raise KeyError
         self.iid[iid]['widget'].destroy()
@@ -86,7 +84,8 @@ def main_window_init(title):
 
 
 class Dialog(Toplevel):
-    def __init__(self, parent, title = None):
+    # Adapted from: http://effbot.org/tkinterbook/tkinter-dialog-windows.htm
+    def __init__(self, parent, title=None):
         Toplevel.__init__(self, parent)
         self.transient(parent)
         if title:
@@ -150,13 +149,8 @@ class Dialog(Toplevel):
 class WidgetTreeviewManager(ObservedSubject, object):
     def __init__(self, user_data_manager, master, **kw):
         
-        def select(iid):
-            self.selection = iid
-            self.notify()
-        
         def treeview_select_event_handler(self, e):
-            iid = self.w.selection()[0]
-            select(iid)
+            self.notify()
         
         self.udm = user_data_manager
         self.w = ttk.Treeview(master)
@@ -262,7 +256,8 @@ class WidgetTreeviewManager(ObservedSubject, object):
             return w
         
         def delete_widget_command():
-            self.delete(self.w.selection()[0])
+            iid = self.w.selection()[0]
+            self.delete(iid)
         
         w = Menu(self.w)
         w.add_cascade(label="Insert", menu=insert_menu(w))
@@ -295,6 +290,9 @@ class WidgetTreeviewManager(ObservedSubject, object):
             return self.w.item(iid, 'text')
         else:
             return self.w.item(iid, text=value)
+    
+    def selection(self):
+        return self.w.selection()
 
 
 class WidgetEntryManager(object):
@@ -335,7 +333,7 @@ class WidgetConfigurationTreeviewManager(ObservedSubject, object):
         iid = self.w.selection()
         for i in self.w.get_children():
             self.w.delete(i)
-        w = self.udm.iid[self.ss.selection]['widget']
+        w = self.udm.iid[self.ss.selection()[0]]['widget']
         sco = sorted(w.configure())
         for k in sco:
             self.w.insert('', 'end', k, text=k, values=(w[k]))
@@ -350,7 +348,7 @@ class WidgetConfigurationTreeviewManager(ObservedSubject, object):
         if value is None:
             return self.w.set(iid, 'value')
         else:
-            w = self.udm.iid[self.ss.selection]['widget']
+            w = self.udm.iid[self.ss.selection()[0]]['widget']
             try:
                 if w[iid] != value:
                     w[iid] = value
@@ -419,7 +417,7 @@ class WidgetLayoutManager(object):
                     self.result = option, value
             
             d = InsertOptionDialog(self.w)
-            self.udm.iid[self.ss.selection]['grid'][d.result[0]] = d.result[1]
+            self.udm.iid[self.ss.selection()[0]]['grid'][d.result[0]] = d.result[1]
         
         def delete_option_command():
             # TODO: Delete a layout option
