@@ -406,8 +406,7 @@ class WidgetConfigurationEntryManager(object):
             pass
         self.sv.set(self.stm.set_value(self.iid))
 
-
-class WidgetLayoutManager(object):
+class BaseConfigureManager(object):
     def __init__(self, user_data_manager, selection_source, master, **kw):
         self.udm = user_data_manager
         self.ss = selection_source
@@ -439,17 +438,19 @@ class WidgetLayoutManager(object):
                     self.result = option, value
             
             d = InsertOptionDialog(self.w)
-            self.udm.iid[self.ss.selection()[0]]['grid'][d.result[0]] = d.result[1]
+            self.insert(self.ss.selection()[0], 'end', d.result[0], d.result[1])
         
         def delete_option_command():
-            # TODO: Delete a layout option
-            pass
+            self.delete(self.ss.selection()[0])
         
         w = Menu(self.w)
         w.add_command(label="Insert", command=insert_option_command)
         w.add_command(label="Delete", command=delete_option_command)
         self.w.bind('<3>', lambda e: w.post(e.x_root, e.y_root))
         return w
+
+
+class WidgetLayoutManager(BaseConfigureManager, object):
     
     def insert(self, parent, index, iid, widget):
         pass
@@ -458,13 +459,21 @@ class WidgetLayoutManager(object):
         pass
 
 
-class WidgetColumnConfigureManager(object):
-    def __init__(self, user_data_manager, selection_source, master, **kw):
+class WidgetColumnConfigureManager(BaseConfigureManager, object):
+    
+    def insert(self, parent, index, iid, widget):
+        pass
+    
+    def delete(self, iid):
         pass
 
 
-class WidgetRowConfigureManager(object):
-    def __init__(self, user_data_manager, selection_source, master, **kw):
+class WidgetRowConfigureManager(BaseConfigureManager, object):
+    
+    def insert(self, parent, index, iid, widget):
+        pass
+    
+    def delete(self, iid):
         pass
 
 
