@@ -458,6 +458,16 @@ class WidgetLayoutManager(object):
         pass
 
 
+class WidgetColumnConfigureManager(object):
+    def __init__(self, user_data_manager, selection_source, master, **kw):
+        pass
+
+
+class WidgetRowConfigureManager(object):
+    def __init__(self, user_data_manager, selection_source, master, **kw):
+        pass
+
+
 def main():
     udm = UserDataManager()
     mw = main_window_init("Steel Moth")
@@ -488,12 +498,14 @@ def main():
     wcolf.columnconfigure(0, weight=1)
     wcolf.rowconfigure(0, weight=1)
     n.add(wcolf, text="columnconfigure()")    
+    wcolcm = WidgetColumnConfigureManager(udm, wtm, wcolf, column=0, row=0, sticky=N+W+E+S)
     
     wrowf = ttk.Frame(n)
     wrowf.grid(column=0, row=0, sticky=N+W+E+S)
     wrowf.columnconfigure(0, weight=1)
     wrowf.rowconfigure(0, weight=1)
     n.add(wrowf, text="rowconfigure()")    
+    wrowcm = WidgetRowConfigureManager(udm, wtm, wrowf, column=0, row=0, sticky=N+W+E+S)
     
     udm.attach(wtm)
     wtm.attach(wem)
