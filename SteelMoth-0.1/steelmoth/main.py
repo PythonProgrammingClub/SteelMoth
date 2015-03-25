@@ -150,6 +150,10 @@ class WidgetTreeviewManager(ObservedSubject, object):
     def __init__(self, user_data_manager, master, **kw):
         
         def treeview_select_event_handler(self, e):
+            if type(self.udm.iid[self.selection()[0]]['widget']) is Toplevel:
+                self.m.entryconfigure("Set Toplevel Title", state=NORMAL)
+            else:
+                self.m.entryconfigure("Set Toplevel Title", state=DISABLED)
             self.notify()
         
         self.udm = user_data_manager
@@ -157,7 +161,7 @@ class WidgetTreeviewManager(ObservedSubject, object):
         self.w.heading('#0', text="Widget")
         self.w.grid(**kw)
         self.w['selectmode'] = 'browse'
-        self.menu()
+        self.m = self.menu()
         self.n = 1
         self.w.bind('<<TreeviewSelect>>', lambda e: treeview_select_event_handler(self, e))
         super().__init__()
@@ -255,12 +259,30 @@ class WidgetTreeviewManager(ObservedSubject, object):
             w.add_command(label="Toplevel", command=insert_toplevel_command)
             return w
         
+        def set_toplevel_title_command():
+            
+            class SetToplevelTitleDialog(Dialog):
+                
+                def body(self, master):
+                    Label(master, text="New Toplevel Title:").grid(row=0)
+                    self.e1 = Entry(master)
+                    self.e1.grid(row=0, column=1)
+                    return self.e1 # initial focus
+                
+                def apply(self):
+                    title = self.e1.get()
+                    self.result = title
+            
+            d = SetToplevelTitleDialog(self.w)
+            self.udm.iid[self.w.selection()[0]]['widget'].title(d.result)
+        
         def delete_widget_command():
             iid = self.w.selection()[0]
             self.delete(iid)
         
         w = Menu(self.w)
         w.add_cascade(label="Insert", menu=insert_menu(w))
+        w.add_command(label="Set Toplevel Title", command=set_toplevel_title_command)
         w.add_command(label="Delete", command=delete_widget_command)
         self.w.bind('<3>', lambda e: w.post(e.x_root, e.y_root))
         return w
