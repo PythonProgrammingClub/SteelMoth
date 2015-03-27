@@ -126,7 +126,7 @@ class Dialog(Toplevel):
         pass  # override
 
 
-class WidgetTreeview(ObservedSubject, object):
+class WidgetSelector(ObservedSubject, object):
     def __init__(self, user_data, master, **kw):
         def treeview_select_event_handler(self, e):
             if type(self.udm.iid[self.selection()[0]]['widget']) is Toplevel:
@@ -317,7 +317,7 @@ class WidgetEntry(object):
         self.sv.set(self.stm.set_value(self.iid))
 
 
-class WidgetConfigurationTreeview(ObservedSubject, object):
+class WidgetConfiguration(ObservedSubject, object):
     def __init__(self, user_data, selection_source, master, **kw):
         def treeview_select_event_handler(self, e):
             self.notify()
@@ -392,12 +392,12 @@ def main():
     udm = UserData()
     mw = main_window_init("Steel Moth")
 
-    wtm = WidgetTreeview(udm, mw, column=0, row=0, sticky=N+W+E+S)
+    wtm = WidgetSelector(udm, mw, column=0, row=0, sticky=N+W+E+S)
     wem = WidgetEntry(udm, mw, column=0, row=1, sticky=N+W+E+S)
     wtm.insert_toplevel("root")
 
-    wctm = WidgetConfigurationTreeview(udm, wtm, mw, column=1, row=0,
-                                       sticky=N+W+E+S)
+    wctm = WidgetConfiguration(udm, wtm, mw, column=1, row=0,
+                               sticky=N+W+E+S)
     wcem = WidgetConfigurationEntry(udm, mw, column=1, row=1,
                                     sticky=N+W+E+S)
 
