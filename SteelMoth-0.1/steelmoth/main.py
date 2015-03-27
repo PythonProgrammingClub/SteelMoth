@@ -144,6 +144,7 @@ class WidgetSelector(ObservedSubject, object):
         self.n = 1
         self.w.bind('<<TreeviewSelect>>',
                     lambda e: treeview_select_event_handler(self, e))
+        self.insert_toplevel("root")
         super().__init__()
 
     def menu(self):
@@ -301,20 +302,47 @@ class WidgetSelector(ObservedSubject, object):
 
 
 class WidgetEntry(object):
-    def __init__(self, user_data, master, **kw):
+    def __init__(self, user_data, selection_source, master, **kw):
         def string_var_written_callback(*args):
-            self.stm.set_value(self.iid, self.sv.get())
+            self.ss.set_value(self.iid, self.sv.get())
 
         self.udm = user_data
         self.sv = StringVar()
         self.sv.trace('w', string_var_written_callback)
         self.w = ttk.Entry(master, textvariable=self.sv)
         self.w.grid(**kw)
-        self.stm = None  # Source Treeview
+        self.ss = selection_source
 
     def update(self):
-        self.iid = self.stm.w.selection()[0]
-        self.sv.set(self.stm.set_value(self.iid))
+        self.iid = self.ss.w.selection()[0]
+        self.sv.set(self.ss.set_value(self.iid))
+
+
+class MethodSelector(ObservedSubject, object):
+    def __init__(self, user_data, selection_source, master, **kw):
+        def treeview_select_event_handler(self, e):
+            self.notify()
+
+        self.udm = user_data
+        self.ss = selection_source
+        self.w = ttk.Treeview(master)
+        self.w.heading('#0', text="Method")
+        self.w.grid(**kw)
+        self.w['selectmode'] = 'browse'
+        self.w.bind('<<TreeviewSelect>>',
+                    lambda e: treeview_select_event_handler(self, e))
+        self.insert("configure(...)")
+        super().__init__()
+
+    def insert(self, iid):
+        self.w.insert('', 'end', iid, text=iid)
+        self.w.selection_set(iid)
+
+    def update(self):
+        self.notify()
+
+    def selection(self):
+        return self.ss.selection()
 
 
 class WidgetConfiguration(ObservedSubject, object):
@@ -363,9 +391,9 @@ class WidgetConfiguration(ObservedSubject, object):
 
 
 class WidgetConfigurationEntry(object):
-    def __init__(self, user_data, master, **kw):
+    def __init__(self, user_data, selection_source, master, **kw):
         def string_var_written_callback(*args):
-            if self.stm.set_value(self.iid, self.sv.get()):
+            if self.ss.set_value(self.iid, self.sv.get()):
                 self.w['foreground'] = '#000000'
             else:
                 self.w['foreground'] = '#ff0000'
@@ -375,39 +403,39 @@ class WidgetConfigurationEntry(object):
         self.sv.trace('w', string_var_written_callback)
         self.w = ttk.Entry(master, textvariable=self.sv)
         self.w.grid(**kw)
-        self.stm = None     # Source Treeview
+        self.ss = selection_source
 
     def update(self):
-        self.iid = self.stm.w.selection()[0]
+        self.iid = self.ss.w.selection()[0]
         x = self.iid
         try:
-            y = self.stm.set_value(x)
+            y = self.ss.set_value(x)
             self.sv.set(y)
         except TclError:
             pass
-        self.sv.set(self.stm.set_value(self.iid))
+        self.sv.set(self.ss.set_value(self.iid))
 
 
 def main():
     udm = UserData()
     mw = main_window_init("Steel Moth")
 
-    wtm = WidgetSelector(udm, mw, column=0, row=0, sticky=N+W+E+S)
-    wem = WidgetEntry(udm, mw, column=0, row=1, sticky=N+W+E+S)
-    wtm.insert_toplevel("root")
+    ws = WidgetSelector(udm, mw, column=0, row=0, sticky=N+W+E+S)
+    we = WidgetEntry(udm, ws, mw, column=0, row=1, sticky=N+W+E+S)
 
-    wctm = WidgetConfiguration(udm, wtm, mw, column=1, row=0,
-                               sticky=N+W+E+S)
-    wcem = WidgetConfigurationEntry(udm, mw, column=1, row=1,
-                                    sticky=N+W+E+S)
+    ms = MethodSelector(udm, ws, mw, column=1, row=0, sticky=N+W+E+S)
 
-    udm.attach(wtm)
-    wtm.attach(wem)
-    wem.stm = wtm
+    wcs = WidgetConfiguration(udm, ms, mw, column=2, row=0, sticky=N+W+E+S)
+    wce = WidgetConfigurationEntry(udm, wcs, mw, column=2, row=1,
+                                   sticky=N+W+E+S)
 
-    wtm.attach(wctm)
-    wctm.attach(wcem)
-    wcem.stm = wctm
+    udm.attach(ws)
+    ws.attach(we)
+
+    ws.attach(ms)
+
+    ms.attach(wcs)
+    wcs.attach(wce)
 
     mw.mainloop()
 
