@@ -7,7 +7,7 @@ from steelmoth.main import *  # @UnusedWildImport
 
 class BaseFixture(object):
     def setUp(self):
-        self.udm = UserDataManager()
+        self.udm = UserData()
 
 
 class BaseTests(BaseFixture, unittest.TestCase):
