@@ -54,31 +54,12 @@ class UserDataManager(ObservedSubject, object):
 
 
 def main_window_init(title):
-
-    def file_menu(master):
-        w = Menu(master)
-        w.add_command(label='New', state='disabled')
-        w.add_command(label='Open...', state='disabled')
-        w.add_command(label='Close', state='disabled')
-        w.add_separator()
-        w.add_command(label='Exit', command=sys.exit)
-        return w
-
-    def edit_menu(master):
-        w = Menu(master)
-        w.add_command(label="Undo", state='disabled')
-        return w
-
     w = Tk()
     w.title(title)
     w.option_add('*tearOff', FALSE)
     w.columnconfigure(0, weight=1)
     w.columnconfigure(1, weight=0)
     w.rowconfigure(0, weight=1)
-    m = Menu(w)
-    w['menu'] = m
-    m.add_cascade(menu=file_menu(m), label='File')
-    m.add_cascade(menu=edit_menu(m), label='Edit')
     return w
 
 
@@ -407,76 +388,6 @@ class WidgetConfigurationEntryManager(object):
         self.sv.set(self.stm.set_value(self.iid))
 
 
-class BaseConfigureManager(object):
-    def __init__(self, user_data_manager, selection_source, master, **kw):
-        self.udm = user_data_manager
-        self.ss = selection_source
-        self.w = ttk.Treeview(master, columns=('value'))
-        self.w.heading('#0', text="Option")
-        self.w.heading('value', text="Value")
-        self.w.grid(**kw)
-        self.w['selectmode'] = 'browse'
-        self.menu()
-
-    def menu(self):
-
-        def insert_option_command():
-            class InsertOptionDialog(Dialog):
-                def body(self, master):
-                    Label(master, text="Option:").grid(row=0)
-                    Label(master, text="Value:").grid(row=1)
-                    self.e1 = Entry(master)
-                    self.e2 = Entry(master)
-                    self.e1.grid(row=0, column=1)
-                    self.e2.grid(row=1, column=1)
-                    return self.e1  # initial focus
-
-                def apply(self):
-                    option = self.e1.get()
-                    value = self.e2.get()
-                    self.result = option, value
-
-            d = InsertOptionDialog(self.w)
-            self.insert(self.ss.selection()[0], 'end',
-                        d.result[0], d.result[1])
-
-        def delete_option_command():
-            self.delete(self.ss.selection()[0])
-
-        w = Menu(self.w)
-        w.add_command(label="Insert", command=insert_option_command)
-        w.add_command(label="Delete", command=delete_option_command)
-        self.w.bind('<3>', lambda e: w.post(e.x_root, e.y_root))
-        return w
-
-
-class WidgetLayoutManager(BaseConfigureManager, object):
-
-    def insert(self, parent, index, iid, widget):
-        pass
-
-    def delete(self, iid):
-        pass
-
-
-class WidgetColumnConfigureManager(BaseConfigureManager, object):
-
-    def insert(self, parent, index, iid, widget):
-        pass
-
-    def delete(self, iid):
-        pass
-
-
-class WidgetRowConfigureManager(BaseConfigureManager, object):
-
-    def insert(self, parent, index, iid, widget):
-        pass
-
-    def delete(self, iid):
-        pass
-
-
 def main():
     udm = UserDataManager()
     mw = main_window_init("Steel Moth")
@@ -485,52 +396,17 @@ def main():
     wem = WidgetEntryManager(udm, mw, column=0, row=1, sticky=N+W+E+S)
     wtm.insert_toplevel("root")
 
-    n = ttk.Notebook(mw)
-    n.grid(column=1, row=0, sticky=N+W+E+S, rowspan=2)
-
-    wcf = ttk.Frame(n)
-    wcf.grid(column=0, row=0, sticky=N+W+E+S)
-    wcf.rowconfigure(0, weight=1)
-    n.add(wcf, text="configure()")
-    wctm = WidgetConfigurationTreeviewManager(udm, wtm, wcf, column=0, row=0,
-                                              sticky=N+W+E+S, columnspan=2)
-    wcem = WidgetConfigurationEntryManager(udm, wcf, column=1, row=1,
+    wctm = WidgetConfigurationTreeviewManager(udm, wtm, mw, column=1, row=0,
+                                              sticky=N+W+E+S)
+    wcem = WidgetConfigurationEntryManager(udm, mw, column=1, row=1,
                                            sticky=N+W+E+S)
-
-    wlf = ttk.Frame(n)
-    wlf.grid(column=0, row=0, sticky=N+W+E+S)
-    wlf.columnconfigure(0, weight=1)
-    wlf.rowconfigure(0, weight=1)
-    n.add(wlf, text="grid()")
-    WidgetLayoutManager(udm, wtm, wlf, column=0, row=0, sticky=N+W+E+S)
-
-    wcolf = ttk.Frame(n)
-    wcolf.grid(column=0, row=0, sticky=N+W+E+S)
-    wcolf.columnconfigure(0, weight=1)
-    wcolf.rowconfigure(0, weight=1)
-    n.add(wcolf, text="columnconfigure()")
-    tcol = ttk.Treeview(wcolf)
-    tcol.heading('#0', text="Column")
-    tcol.grid(column=0, row=0, sticky=N+W+E+S)
-    WidgetColumnConfigureManager(udm, wtm, wcolf, column=1, row=0,
-                                 sticky=N+W+E+S)
-
-    wrowf = ttk.Frame(n)
-    wrowf.grid(column=0, row=0, sticky=N+W+E+S)
-    wrowf.columnconfigure(0, weight=1)
-    wrowf.rowconfigure(0, weight=1)
-    n.add(wrowf, text="rowconfigure()")
-    trow = ttk.Treeview(wrowf)
-    trow.heading('#0', text="Row")
-    trow.grid(column=0, row=0, sticky=N+W+E+S)
-    WidgetRowConfigureManager(udm, wtm, wrowf, column=1, row=0, sticky=N+W+E+S)
 
     udm.attach(wtm)
     wtm.attach(wem)
+    wem.stm = wtm
+
     wtm.attach(wctm)
     wctm.attach(wcem)
-
-    wem.stm = wtm
     wcem.stm = wctm
 
     mw.mainloop()
