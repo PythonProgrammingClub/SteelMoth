@@ -126,12 +126,12 @@ class Dialog(Toplevel):
 class WidgetSelector(ObservedSubject, object):
     def __init__(self, user_data, master, **kw):
         def treeview_select_event_handler(self, e):  # @UnusedVariable
-            if type(self.udm.iid[self.selection()[0]]['widget']) is Toplevel:
+            if type(self.ud.iid[self.selection()[0]]['widget']) is Toplevel:
                 self.m.entryconfigure("Set Toplevel Title", state=NORMAL)
             else:
                 self.m.entryconfigure("Set Toplevel Title", state=DISABLED)
             self.notify()
-        self.udm = user_data
+        self.ud = user_data
         self.w = ttk.Treeview(master)
         self.w.heading('#0', text="Widget")
         self.w.grid(**kw)
@@ -145,82 +145,43 @@ class WidgetSelector(ObservedSubject, object):
 
     def menu(self):
         def insert_menu(parent):
-            def insert_frame_command():
-                iid = 'frame{}'.format(self.n)
+            def insert_widget_command(widget_class, widget_name):
+                iid = (widget_name + '{}').format(self.n)
                 p = self.w.selection()[0]
-                pw = self.udm.iid[p]['widget']
-                w = ttk.Frame(pw)
+                pw = self.ud.iid[p]['widget']
+                w = widget_class(pw)
                 self.insert(p, 'end', iid, w)
                 w.grid()
                 self.n += 1
+                return w, iid
+
+            def insert_widget_with_text_command(widget_class, widget_name):
+                w, iid = insert_widget_command(widget_class, widget_name)
+                w.configure(text=iid)
+
+            def insert_frame_command():
+                insert_widget_command(ttk.Frame, "frame")
 
             def insert_label_command():
-                iid = 'label{}'.format(self.n)
-                p = self.w.selection()[0]
-                pw = self.udm.iid[p]['widget']
-                w = ttk.Label(pw)
-                w.configure(text=iid)
-                self.insert(p, 'end', iid, w)
-                w.grid()
-                self.n += 1
+                insert_widget_with_text_command(ttk.Label, "label")
 
             def insert_button_command():
-                iid = 'button{}'.format(self.n)
-                p = self.w.selection()[0]
-                pw = self.udm.iid[p]['widget']
-                w = ttk.Button(pw)
-                w.configure(text=iid)
-                self.insert(p, 'end', iid, w)
-                w.grid()
-                self.n += 1
+                insert_widget_with_text_command(ttk.Button, "button")
 
             def insert_checkbutton_command():
-                iid = 'checkbutton{}'.format(self.n)
-                p = self.w.selection()[0]
-                pw = self.udm.iid[p]['widget']
-                w = ttk.Checkbutton(pw)
-                w.configure(text=iid)
-                self.insert(p, 'end', iid, w)
-                w.grid()
-                self.n += 1
+                insert_widget_with_text_command(ttk.Checkbutton, "checkbutton")
 
             def insert_radiobutton_command():
-                iid = 'radiobutton{}'.format(self.n)
-                p = self.w.selection()[0]
-                pw = self.udm.iid[p]['widget']
-                w = ttk.Radiobutton(pw)
-                w.configure(text=iid)
-                self.insert(p, 'end', iid, w)
-                w.grid()
-                self.n += 1
+                insert_widget_with_text_command(ttk.Radiobutton, "radiobutton")
 
             def insert_entry_command():
-                iid = 'entry{}'.format(self.n)
-                p = self.w.selection()[0]
-                pw = self.udm.iid[p]['widget']
-                w = ttk.Entry(pw)
-                self.insert(p, 'end', iid, w)
-                w.grid()
-                self.n += 1
+                insert_widget_command(ttk.Entry, "entry")
 
             def insert_combobox_command():
-                iid = 'combobox{}'.format(self.n)
-                p = self.w.selection()[0]
-                pw = self.udm.iid[p]['widget']
-                w = ttk.Combobox(pw)
-                self.insert(p, 'end', iid, w)
-                w.grid()
-                self.n += 1
+                insert_widget_command(ttk.Combobox, "combobox")
 
             def insert_toplevel_command():
-                iid = 'root{}'.format(self.n)
-                p = self.w.selection()[0]
-                pw = self.udm.iid[p]['widget']
-                w = Toplevel(pw)
-                w.title(iid)
-                self.insert(p, 'end', iid, w)
-                w.grid()
-                self.n += 1
+                insert_widget_command(Toplevel, "root")
             w = Menu(parent)
             w.add_command(label="Frame", command=insert_frame_command)
             w.add_command(label="Label", command=insert_label_command)
@@ -247,7 +208,7 @@ class WidgetSelector(ObservedSubject, object):
                     title = self.e1.get()
                     self.result = title
             d = SetToplevelTitleDialog(self.w)
-            self.udm.iid[self.w.selection()[0]]['widget'].title(d.result)
+            self.ud.iid[self.w.selection()[0]]['widget'].title(d.result)
 
         def delete_widget_command():
             iid = self.w.selection()[0]
@@ -268,12 +229,12 @@ class WidgetSelector(ObservedSubject, object):
         self.w.selection_set(iid)
 
     def insert(self, parent, index, iid, widget):  # @UnusedVariable
-        self.udm.insert(parent, 'end', iid, widget)
+        self.ud.insert(parent, 'end', iid, widget)
         self.w.insert(parent, 'end', iid, text=iid)
 
     def delete(self, iid):
         p = self.w.parent(iid)
-        self.udm.delete(iid)
+        self.ud.delete(iid)
         self.w.delete(iid)
         self.w.selection_set(p)
 
@@ -294,7 +255,7 @@ class WidgetEntry(object):
     def __init__(self, user_data, selection_source, master, **kw):
         def string_var_written_callback(*args):  # @UnusedVariable
             self.ss.set_value(self.iid, self.sv.get())
-        self.udm = user_data
+        self.ud = user_data
         self.sv = StringVar()
         self.sv.trace('w', string_var_written_callback)
         self.w = ttk.Entry(master, textvariable=self.sv)
@@ -310,7 +271,7 @@ class MethodSelector(ObservedSubject, object):
     def __init__(self, user_data, selection_source, master, **kw):
         def treeview_select_event_handler(self, e):  # @UnusedVariable
             self.notify()
-        self.udm = user_data
+        self.ud = user_data
         self.ss = selection_source
         self.w = ttk.Treeview(master)
         self.w.heading('#0', text="Method")
@@ -336,7 +297,7 @@ class WidgetConfiguration(ObservedSubject, object):
     def __init__(self, user_data, selection_source, master, **kw):
         def treeview_select_event_handler(self, e):  # @UnusedVariable
             self.notify()
-        self.udm = user_data
+        self.ud = user_data
         self.ss = selection_source
         self.w = ttk.Treeview(master, columns=('value'))
         self.w.heading('#0', text="Option")
@@ -351,7 +312,7 @@ class WidgetConfiguration(ObservedSubject, object):
         iid = self.w.selection()
         for i in self.w.get_children():
             self.w.delete(i)
-        w = self.udm.iid[self.ss.selection()[0]]['widget']
+        w = self.ud.iid[self.ss.selection()[0]]['widget']
         sco = sorted(w.configure())
         for k in sco:
             self.w.insert('', 'end', k, text=k, values=(w[k]))
@@ -366,7 +327,7 @@ class WidgetConfiguration(ObservedSubject, object):
         if value is None:
             return self.w.set(iid, 'value')
         else:
-            w = self.udm.iid[self.ss.selection()[0]]['widget']
+            w = self.ud.iid[self.ss.selection()[0]]['widget']
             try:
                 if w[iid] != value:
                     w[iid] = value
@@ -383,7 +344,7 @@ class WidgetConfigurationEntry(object):
                 self.w['foreground'] = '#000000'
             else:
                 self.w['foreground'] = '#ff0000'
-        self.udm = user_data
+        self.ud = user_data
         self.sv = StringVar()
         self.sv.trace('w', string_var_written_callback)
         self.w = ttk.Entry(master, textvariable=self.sv)
@@ -402,15 +363,15 @@ class WidgetConfigurationEntry(object):
 
 
 def main():
-    udm = UserData()
+    ud = UserData()
     mw = main_window_init("Steel Moth")
-    ws = WidgetSelector(udm, mw, column=0, row=0, sticky=N+W+E+S)
-    we = WidgetEntry(udm, ws, mw, column=0, row=1, sticky=N+W+E+S)
-    ms = MethodSelector(udm, ws, mw, column=1, row=0, sticky=N+W+E+S)
-    wcs = WidgetConfiguration(udm, ms, mw, column=2, row=0, sticky=N+W+E+S)
-    wce = WidgetConfigurationEntry(udm, wcs, mw, column=2, row=1,
+    ws = WidgetSelector(ud, mw, column=0, row=0, sticky=N+W+E+S)
+    we = WidgetEntry(ud, ws, mw, column=0, row=1, sticky=N+W+E+S)
+    ms = MethodSelector(ud, ws, mw, column=1, row=0, sticky=N+W+E+S)
+    wcs = WidgetConfiguration(ud, ms, mw, column=2, row=0, sticky=N+W+E+S)
+    wce = WidgetConfigurationEntry(ud, wcs, mw, column=2, row=1,
                                    sticky=N+W+E+S)
-    udm.attach(ws)
+    ud.attach(ws)
     ws.attach(we)
     ws.attach(ms)
     ms.attach(wcs)
