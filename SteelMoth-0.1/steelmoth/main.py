@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-
-
 import sys  # @UnusedImport
 from tkinter import *  # @UnusedWildImport
 from tkinter import ttk  # @Reimport
@@ -46,7 +44,6 @@ class UserData(ObservedSubject, object):
             for i in self.iid[iid]['children']:
                 recursive_delete(i)
             del self.iid[iid]
-
         if iid not in self.iid:
             raise KeyError
         self.iid[iid]['widget'].destroy()
@@ -104,7 +101,7 @@ class Dialog(Toplevel):
         box.pack()
 
     # standard button semantics
-    def ok(self, event=None):
+    def ok(self, event=None):  # @UnusedVariable
         if not self.validate():
             self.initial_focus.focus_set()  # put focus back
             return
@@ -113,7 +110,7 @@ class Dialog(Toplevel):
         self.apply()
         self.cancel()
 
-    def cancel(self, event=None):
+    def cancel(self, event=None):  # @UnusedVariable
         # put focus back to the parent window
         self.parent.focus_set()
         self.destroy()
@@ -128,13 +125,12 @@ class Dialog(Toplevel):
 
 class WidgetSelector(ObservedSubject, object):
     def __init__(self, user_data, master, **kw):
-        def treeview_select_event_handler(self, e):
+        def treeview_select_event_handler(self, e):  # @UnusedVariable
             if type(self.udm.iid[self.selection()[0]]['widget']) is Toplevel:
                 self.m.entryconfigure("Set Toplevel Title", state=NORMAL)
             else:
                 self.m.entryconfigure("Set Toplevel Title", state=DISABLED)
             self.notify()
-
         self.udm = user_data
         self.w = ttk.Treeview(master)
         self.w.heading('#0', text="Widget")
@@ -148,9 +144,7 @@ class WidgetSelector(ObservedSubject, object):
         super().__init__()
 
     def menu(self):
-
         def insert_menu(parent):
-
             def insert_frame_command():
                 iid = 'frame{}'.format(self.n)
                 p = self.w.selection()[0]
@@ -227,7 +221,6 @@ class WidgetSelector(ObservedSubject, object):
                 self.insert(p, 'end', iid, w)
                 w.grid()
                 self.n += 1
-
             w = Menu(parent)
             w.add_command(label="Frame", command=insert_frame_command)
             w.add_command(label="Label", command=insert_label_command)
@@ -243,9 +236,7 @@ class WidgetSelector(ObservedSubject, object):
             return w
 
         def set_toplevel_title_command():
-
             class SetToplevelTitleDialog(Dialog):
-
                 def body(self, master):
                     Label(master, text="New Toplevel Title:").grid(row=0)
                     self.e1 = Entry(master)
@@ -255,14 +246,12 @@ class WidgetSelector(ObservedSubject, object):
                 def apply(self):
                     title = self.e1.get()
                     self.result = title
-
             d = SetToplevelTitleDialog(self.w)
             self.udm.iid[self.w.selection()[0]]['widget'].title(d.result)
 
         def delete_widget_command():
             iid = self.w.selection()[0]
             self.delete(iid)
-
         w = Menu(self.w)
         w.add_cascade(label="Insert", menu=insert_menu(w))
         w.add_command(label="Set Toplevel Title",
@@ -278,7 +267,7 @@ class WidgetSelector(ObservedSubject, object):
         w.grid()
         self.w.selection_set(iid)
 
-    def insert(self, parent, index, iid, widget):
+    def insert(self, parent, index, iid, widget):  # @UnusedVariable
         self.udm.insert(parent, 'end', iid, widget)
         self.w.insert(parent, 'end', iid, text=iid)
 
@@ -303,9 +292,8 @@ class WidgetSelector(ObservedSubject, object):
 
 class WidgetEntry(object):
     def __init__(self, user_data, selection_source, master, **kw):
-        def string_var_written_callback(*args):
+        def string_var_written_callback(*args):  # @UnusedVariable
             self.ss.set_value(self.iid, self.sv.get())
-
         self.udm = user_data
         self.sv = StringVar()
         self.sv.trace('w', string_var_written_callback)
@@ -320,9 +308,8 @@ class WidgetEntry(object):
 
 class MethodSelector(ObservedSubject, object):
     def __init__(self, user_data, selection_source, master, **kw):
-        def treeview_select_event_handler(self, e):
+        def treeview_select_event_handler(self, e):  # @UnusedVariable
             self.notify()
-
         self.udm = user_data
         self.ss = selection_source
         self.w = ttk.Treeview(master)
@@ -347,9 +334,8 @@ class MethodSelector(ObservedSubject, object):
 
 class WidgetConfiguration(ObservedSubject, object):
     def __init__(self, user_data, selection_source, master, **kw):
-        def treeview_select_event_handler(self, e):
+        def treeview_select_event_handler(self, e):  # @UnusedVariable
             self.notify()
-
         self.udm = user_data
         self.ss = selection_source
         self.w = ttk.Treeview(master, columns=('value'))
@@ -392,12 +378,11 @@ class WidgetConfiguration(ObservedSubject, object):
 
 class WidgetConfigurationEntry(object):
     def __init__(self, user_data, selection_source, master, **kw):
-        def string_var_written_callback(*args):
+        def string_var_written_callback(*args):  # @UnusedVariable
             if self.ss.set_value(self.iid, self.sv.get()):
                 self.w['foreground'] = '#000000'
             else:
                 self.w['foreground'] = '#ff0000'
-
         self.udm = user_data
         self.sv = StringVar()
         self.sv.trace('w', string_var_written_callback)
@@ -419,26 +404,17 @@ class WidgetConfigurationEntry(object):
 def main():
     udm = UserData()
     mw = main_window_init("Steel Moth")
-
     ws = WidgetSelector(udm, mw, column=0, row=0, sticky=N+W+E+S)
     we = WidgetEntry(udm, ws, mw, column=0, row=1, sticky=N+W+E+S)
-
     ms = MethodSelector(udm, ws, mw, column=1, row=0, sticky=N+W+E+S)
-
     wcs = WidgetConfiguration(udm, ms, mw, column=2, row=0, sticky=N+W+E+S)
     wce = WidgetConfigurationEntry(udm, wcs, mw, column=2, row=1,
                                    sticky=N+W+E+S)
-
     udm.attach(ws)
     ws.attach(we)
-
     ws.attach(ms)
-
     ms.attach(wcs)
     wcs.attach(wce)
-
     mw.mainloop()
-
-
 if __name__ == "__main__":
     main()
