@@ -4,66 +4,10 @@ from tkinter import *  # @UnusedWildImport
 from tkinter import ttk  # @Reimport
 
 
-class ObservedSubject(object):
-    def __init__(self):
-        self.observers = []
-
-    def attach(self, observer):
-        self.observers.append(observer)
-
-    def detach(self, observer):
-        self.observers.remove(observer)
-
-    def notify(self):
-        for o in self.observers:
-            o.update()
-
-
-class UserData(ObservedSubject, object):
-    def __init__(self):
-        self.iid = {'': {'widget': None,
-                         'children': [],
-                         'configure': {},
-                         'grid': {}}}
-        super().__init__()
-
-    def insert(self, parent, index, iid, widget):
-        if iid in self.iid:
-            raise KeyError
-        elif index == 'end':
-            self.iid[parent]['children'].append(iid)
-        else:
-            self.iid[parent]['children'][index] = iid
-        self.iid[iid] = {'widget': widget,
-                         'children': [],
-                         'configure': widget and widget.configure() or {},
-                         'grid': {}}
-
-    def delete(self, iid):
-        def recursive_delete(iid):
-            for i in self.iid[iid]['children']:
-                recursive_delete(i)
-            del self.iid[iid]
-        if iid not in self.iid:
-            raise KeyError
-        self.iid[iid]['widget'].destroy()
-        recursive_delete(iid)
-
-
-def main_window_init(title):
-    w = Tk()
-    w.title(title)
-    w.option_add('*tearOff', FALSE)
-    w.columnconfigure(0, weight=1)
-    w.columnconfigure(1, weight=0)
-    w.rowconfigure(0, weight=1)
-    return w
-
-
-class Dialog(Toplevel):
+class Dialog(Toplevel, object):
     # Adapted from: http://effbot.org/tkinterbook/tkinter-dialog-windows.htm
     def __init__(self, parent, title=None):
-        Toplevel.__init__(self, parent)
+        super().__init__(parent)
         self.transient(parent)
         if title:
             self.title(title)
@@ -123,7 +67,54 @@ class Dialog(Toplevel):
         pass  # override
 
 
-class WidgetSelector(ObservedSubject, object):
+class Observable(object):
+    def __init__(self):
+        super().__init__()
+        self.observers = []
+
+    def attach(self, observer):
+        self.observers.append(observer)
+
+    def detach(self, observer):
+        self.observers.remove(observer)
+
+    def notify(self):
+        for o in self.observers:
+            o.update()
+
+
+class UserData(Observable, object):
+    def __init__(self):
+        super().__init__()
+        self.iid = {'': {'widget': None,
+                         'children': [],
+                         'configure': {},
+                         'grid': {}}}
+
+    def insert(self, parent, index, iid, widget):
+        if iid in self.iid:
+            raise KeyError
+        elif index == 'end':
+            self.iid[parent]['children'].append(iid)
+        else:
+            self.iid[parent]['children'][index] = iid
+        self.iid[iid] = {'widget': widget,
+                         'children': [],
+                         'configure': widget and widget.configure() or {},
+                         'grid': {}}
+
+    def delete(self, iid):
+        def recursive_delete(iid):
+            for i in self.iid[iid]['children']:
+                recursive_delete(i)
+            del self.iid[iid]
+        if iid not in self.iid:
+            raise KeyError
+        self.iid[iid]['widget'].destroy()
+        recursive_delete(iid)
+
+
+class WidgetSelector(Observable, object):
     def __init__(self, user_data, master, **kw):
         def treeview_select_event_handler(self, e):  # @UnusedVariable
             if type(self.ud.iid[self.selection()[0]]['widget']) is Toplevel:
@@ -131,6 +122,7 @@ class WidgetSelector(ObservedSubject, object):
             else:
                 self.m.entryconfigure("Set Toplevel Title", state=DISABLED)
             self.notify()
+        super().__init__()
         self.ud = user_data
         self.w = ttk.Treeview(master)
         self.w.heading('#0', text="Widget")
@@ -141,7 +133,6 @@ class WidgetSelector(ObservedSubject, object):
         self.w.bind('<<TreeviewSelect>>',
                     lambda e: treeview_select_event_handler(self, e))
         self.insert_toplevel("root")
-        super().__init__()
 
     def menu(self):
         def insert_menu(parent):
@@ -228,18 +219,15 @@ class WidgetSelector(ObservedSubject, object):
         w.grid()
         self.w.selection_set(iid)
 
-    def insert(self, parent, index, iid, widget):  # @UnusedVariable
-        self.ud.insert(parent, 'end', iid, widget)
-        self.w.insert(parent, 'end', iid, text=iid)
+    def insert(self, parent, index, iid, widget):
+        self.ud.insert(parent, index, iid, widget)
+        self.w.insert(parent, index, iid, text=iid)
 
     def delete(self, iid):
         p = self.w.parent(iid)
         self.ud.delete(iid)
         self.w.delete(iid)
         self.w.selection_set(p)
-
-    def update(self):
-        self.notify()
 
     def set_value(self, iid, value=None):
         if value is None:
@@ -255,6 +243,7 @@ class WidgetEntry(object):
     def __init__(self, user_data, selection_source, master, **kw):
         def string_var_written_callback(*args):  # @UnusedVariable
             self.ss.set_value(self.iid, self.sv.get())
+        super().__init__()
         self.ud = user_data
         self.sv = StringVar()
         self.sv.trace('w', string_var_written_callback)
@@ -267,10 +256,11 @@ class WidgetEntry(object):
         self.sv.set(self.ss.set_value(self.iid))
 
 
-class MethodSelector(ObservedSubject, object):
+class MethodSelector(Observable, object):
     def __init__(self, user_data, selection_source, master, **kw):
         def treeview_select_event_handler(self, e):  # @UnusedVariable
             self.notify()
+        super().__init__()
         self.ud = user_data
         self.ss = selection_source
         self.w = ttk.Treeview(master)
@@ -279,24 +269,24 @@ class MethodSelector(ObservedSubject, object):
         self.w['selectmode'] = 'browse'
         self.w.bind('<<TreeviewSelect>>',
                     lambda e: treeview_select_event_handler(self, e))
-        self.insert("configure(...)")
-        super().__init__()
+        self.insert('end', "configure(...)")
 
-    def insert(self, iid):
-        self.w.insert('', 'end', iid, text=iid)
+    def insert(self, index, iid):
+        self.w.insert('', index, iid, text=iid)
         self.w.selection_set(iid)
-
-    def update(self):
-        self.notify()
 
     def selection(self):
         return self.ss.selection()
 
+    def update(self):
+        self.notify()
 
-class WidgetConfiguration(ObservedSubject, object):
+
+class WidgetConfiguration(Observable, object):
     def __init__(self, user_data, selection_source, master, **kw):
         def treeview_select_event_handler(self, e):  # @UnusedVariable
             self.notify()
+        super().__init__()
         self.ud = user_data
         self.ss = selection_source
         self.w = ttk.Treeview(master, columns=('value'))
@@ -306,7 +296,6 @@ class WidgetConfiguration(ObservedSubject, object):
         self.w['selectmode'] = 'browse'
         self.w.bind('<<TreeviewSelect>>',
                     lambda e: treeview_select_event_handler(self, e))
-        super().__init__()
 
     def update(self):
         iid = self.w.selection()
@@ -321,7 +310,6 @@ class WidgetConfiguration(ObservedSubject, object):
             self.w.see(iid)
         else:
             self.w.selection_set(sco[0])
-        self.notify()
 
     def set_value(self, iid, value=None):
         if value is None:
@@ -344,6 +332,7 @@ class WidgetConfigurationEntry(object):
                 self.w['foreground'] = '#000000'
             else:
                 self.w['foreground'] = '#ff0000'
+        super().__init__()
         self.ud = user_data
         self.sv = StringVar()
         self.sv.trace('w', string_var_written_callback)
@@ -362,9 +351,11 @@ class WidgetConfigurationEntry(object):
         self.sv.set(self.ss.set_value(self.iid))
 
 
-def main():
+if __name__ == "__main__":
     ud = UserData()
-    mw = main_window_init("Steel Moth")
+    mw = Tk()
+    mw.title("Steel Moth")
+    mw.option_add('*tearOff', FALSE)
     ws = WidgetSelector(ud, mw, column=0, row=0, sticky=N+W+E+S)
     we = WidgetEntry(ud, ws, mw, column=0, row=1, sticky=N+W+E+S)
     ms = MethodSelector(ud, ws, mw, column=1, row=0, sticky=N+W+E+S)
@@ -377,5 +368,3 @@ def main():
     ms.attach(wcs)
     wcs.attach(wce)
     mw.mainloop()
-if __name__ == "__main__":
-    main()
